@@ -41,7 +41,7 @@ def deg2pwm2(ang, motor, inipwm, endpwm):
 sinit = [310, 310, 443, 458, 452, 450, 312, 275]
 
 ser = serial.Serial()
-ser.baudrate = 9600
+ser.baudrate = 921600
 ser.port = 'COM4'
 ser.open()
 
