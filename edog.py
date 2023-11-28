@@ -65,18 +65,18 @@ class edog():
             y = point[1]
             x = -point[0]
             h = (x**2+y**2)**0.5
-            h = h if h <= 10 else 10
-            alpha = np.arccos((h/2)/5)
-            angp = np.arctan(x/y)
-            angHip = (angp+alpha)*(180/np.pi)
-            angKnee = (2.0*((np.pi/2.0)-alpha)-np.pi)*(180/np.pi)
-            angHip += 20
-            angKnee += 57
-
-            angHip = angHip if abs(angHip) <= 90 else m.copysign(90, angHip)
-            angKnee = angKnee if abs(
-                angKnee) <= 100 else m.copysign(100, angKnee)
-            return angHip, angKnee
+            h = h if h <= 8.6 else 8.6
+            h = h if h >= 1.4 else 1.4
+            p = x/h if abs(x/h) <= 1.0 else m.copysign(1.0, x)
+            a_p = np.arcsin(p)
+            a_a = np.arccos(((h**2)+25-12.96)/(10*h))
+            a_b = np.arccos((25+12.96-(h**2))/(2*5*3.6))
+            angHip = (a_p+a_a)*(180/np.pi)
+            angKnee = (-np.pi+a_b)*(180/np.pi)
+            # angHip = angHip if abs(angHip) <= 90 else m.copysign(90, angHip)
+            # angKnee = angKnee if abs(
+            #     angKnee) <= 100 else m.copysign(100, angKnee)
+            return angHip+11.5, angKnee+61.0
 
         def _point2pwm(self, point: tuple[float, float]) -> tuple[int, int]:
             '''
@@ -218,8 +218,11 @@ class edog():
             time.sleep(0.02)
 
 
-x = [0.0, -0.5, -1.0, -1.5, -2.0, -1.6, 1.6, 2.0, 1.5, 1.0, 0.5, 0.0]
-y = [6.8, 6.9, 7.0, 7.2, 7.4, 6.2, 5.5, 6.4, 6.5, 6.6, 6.7, 6.8]
+x = np.array([-2.0, -2.4, -2.8, -3.2, -3.6, -4.0, -
+              3.2, -0.8, 0.0, -0.4, -0.8, -1.2, -1.6, -2.0])
+y = np.array([6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 5.75,
+             5.7, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0])
+
 
 xa = []
 ya = []
@@ -240,7 +243,7 @@ layout_l = [[sg.Column([
 ]), sg.Column([
     [sg.Text('Height: 6.5', justification='center', key='hg'),
      sg.Text('   X: 0', justification='center', key='xg')],
-    [sg.Slider(range=(3, 10), default_value=6.5, resolution=0.1, change_submits=True,
+    [sg.Slider(range=(0, 9), default_value=6.5, resolution=0.1, change_submits=True,
                enable_events=True, key='SliderY', orientation='v'),
      sg.Slider(range=(-10, 10), default_value=0, resolution=0.1, change_submits=True,
                enable_events=True, key='SliderX', orientation='v')
@@ -283,7 +286,12 @@ layout_lb = [[sg.Text('Speed: 2.5', key='SpeedTxt', size=(10, 0)), sg.Slider(ran
              [sg.Button('Forward', size=(10, 0))],
              [sg.Button('Backward', size=(10, 0))],
              [sg.Button('Forward Left', size=(10, 0))],
-             [sg.Button('Forward Right', size=(10, 0))]]
+             [sg.Button('Forward Right', size=(10, 0))],
+             #  [sg.Slider(range=(-90, 90), default_value=15.5, resolution=0.1, change_submits=True,
+             #             enable_events=True, key='osHip', orientation='h'),
+             #   sg.Slider(range=(-90, 90), default_value=65.0, resolution=0.1, change_submits=True,
+             #             enable_events=True, key='osKnee', orientation='h')]
+             ]
 
 
 layout = [[sg.Column([[sg.Frame(title='Position Test', layout=layout_l, size=(380, 215))],
@@ -299,6 +307,9 @@ inipwm = [620, 605, 141, 148, 106,  105, 642, 613]
 
 robot = edog(ser, leg1=(0, 4), leg2=(1, 5), leg3=(2, 6),
              leg4=(3, 7), inipwm=inipwm, endpwm=endpwm)
+
+offsetHip = 15.5
+offsetKnee = 65.0
 while True:
     event, values = window.read()
     if event == sg.WIN_CLOSED or event == 'Cancel':
@@ -311,12 +322,20 @@ while True:
         case sg.WIN_CLOSED:
             break
         case 'Forward':
-            robot.animation3(x, y, values['Speed'],
-                             values['n'], (0, 0.5, 0, 0.5))
+            ti = [values[f'Speed'] for i in range(4)]
+            r = [values[f'r_l{i+1}'] for i in range(4)]
+            robot.animation_ind([x, x, x, x], [y, y, y, y], [0.5, 0.75, 0.25, 0.0],
+                                ti, (False, False, False, False), values['n'])
+            time.sleep(0.1)
             robot.set_position((0, 6.5), (1, 1, 1, 1))
         case 'Backward':
-            robot.animation3(x[::-1], y[::-1], values['Speed'],
-                             values['n'], (0, 0.5, 0, 0.5))
+            ti = [values[f'Speed'] for i in range(4)]
+            r = [values[f'r_l{i+1}'] for i in range(4)]
+            robot.animation_ind([x, x, x, x],
+                                [y, y, y, y],
+                                [0.5, 0.25, 0.75, 0.0],
+                                ti, (True, True, True, True), values['n'])
+            time.sleep(0.1)
             robot.set_position((0, 6.5), (1, 1, 1, 1))
         case 'Forward Left':
             xl = np.array([0.0, -0.25, -0.5, -0.75, -1.0, -1.25, -1.5, -1.75, -2.0, -
@@ -359,7 +378,7 @@ while True:
                 r = [values[f'r_l{i+1}'] for i in range(4)]
                 robot.animation_ind([xa, xa, xa, xa], [
                                     ya, ya, ya, ya], gap, ti, r, values['et'])
-                time.sleep(0.05)
+                time.sleep(0.1)
                 robot.set_position((0, 6.5), (1, 1, 1, 1))
 
         case 'Speed':
@@ -396,12 +415,14 @@ while True:
                 value=f'Ejecution Time: {values["et"]}s')
         case _:
             if event == 'SliderX' or event == 'SliderY':
-                window['xg'].update(f"   X: {values['SliderX']:.0f}")
+                window['xg'].update(f"   X: {values['SliderX']:.1f}")
                 window['hg'].update(f"Height: {values['SliderY']:.1f}")
                 point = (values['SliderX'], values['SliderY'])
                 robot.set_position(
                     point, legs=(values['leg1'], values['leg2'], values['leg3'], values['leg4']))
-
+            if event == 'osHip' or event == 'osKnee':
+                offsetHip = values['osHip']
+                offsetKnee = values['osKnee']
 
 window.close()
 ser.close()
