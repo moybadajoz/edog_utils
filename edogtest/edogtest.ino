@@ -14,6 +14,8 @@ University of Guanajuato, 2023
 
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
+#include <ModbusIP_ESP8266.h>
+#include <WiFi.h>
 
 #define SMIN 100
 #define SMAX 600
@@ -22,6 +24,17 @@ University of Guanajuato, 2023
 //You may replace them with your own empirically determined values.
 //int sval[8] = { 310, 310, 443, 458, 335, 320, 425, 390 };
 int sval[8] = { 193, 189, 581, 581, 259, 258, 476, 457 };
+const char* ssid = "ESP32"; 
+const char* password = "12345678";
+// WiFiUDP Udp;
+IPAddress local_ip(192, 168, 4, 1);
+IPAddress gateway(192, 168, 4, 1);
+IPAddress subnet(255, 255, 255, 0);
+// WebServer server(80);
+
+const int IDX_REG = 0;
+
+ModbusIP mb;
 
 Adafruit_PWMServoDriver b1 = Adafruit_PWMServoDriver();
 uint8_t snum = 0;
@@ -31,6 +44,11 @@ void setup() {
   Serial.begin(921600);
   b1.begin();
   b1.setPWMFreq(60);
+  WiFi.softAP(ssid, password);
+  WiFi.softAPConfig(local_ip, gateway, subnet);
+  // Udp.begin(4210);
+  mb.server(502); // inicializacion del servidor y asignacion del puerto
+  mb.addHreg(IDX_REG, 0, 8); // marca el inidice del registro, su valor y cuantos registros podra almacenar
 
   for(int k=0; k < 8; k++)
     b1.setPWM(snum+k, 0, sval[k]);
@@ -42,15 +60,10 @@ void loop() {
   // representing the PWM values for each servo.
   int ang;
   int k;
-
-  while (Serial.available() == 0){}
-
+  mb.task(); // no se que hace pero dice que es necesario
   for(k=0; k < 8; k++)
   {
-    ang = Serial.parseInt();
+    ang = mb.Hreg(IDX_REG+k)
     b1.setPWM(snum+k, 0, ang);
   }
-
-  while (Serial.available() > 0)
-    Serial.read(); 
 }
