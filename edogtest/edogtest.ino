@@ -28,7 +28,7 @@ uint8_t snum = 0;
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(1);
+  Serial.begin(921600);
   b1.begin();
   b1.setPWMFreq(60);
 

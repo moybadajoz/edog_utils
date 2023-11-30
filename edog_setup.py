@@ -29,7 +29,7 @@ def deg2pwm(ang, motor):
     inipwm = [270.0, 275.0, 505.0, 535.0, 630.0, 604.0, 162.0, 160.0]
     # plus 45
     endpwm = [515.0, 518.0, 247.0, 275.0, 386.0, 354.0, 423.0, 390.0]
-    m = (endpwm[motor]-inipwm[motor])/90
+    m = (endpwm[motor]-inipwm[motor])/95
     return int(m*(ang+45)+inipwm[motor])
 
 
@@ -48,9 +48,9 @@ ser.open()
 sg.theme('DarkAmber')
 # plus 90
 # minus 90
-endpwm = [122, 120, 656, 655, 600, 600, 110, 111]
+endpwm = [122, 120, 600, 655, 600, 600, 110, 111]
 # plus 90
-inipwm = [620, 605, 141, 148, 106,  105, 642, 613]
+inipwm = [620, 605, 120, 148, 106,  105, 642, 665]
 layout = [[sg.Text('Set each servo for eDog')],
           [sg.Slider((-90, 90), 0, resolution=1),
            sg.Slider((-90, 90), 0, resolution=1),
