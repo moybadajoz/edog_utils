@@ -6,8 +6,9 @@ import math as m
 
 
 class edog():
-    def __init__(self, ser: serial.serialwin32.Serial, leg1: tuple[int, int], leg2: tuple[int, int], leg3: tuple[int, int], leg4: tuple[int, int], inipwm: list, endpwm: list):
-        self.ser = ser
+    def __init__(self, client, IDX_REG, leg1: tuple[int, int], leg2: tuple[int, int], leg3: tuple[int, int], leg4: tuple[int, int], inipwm: list, endpwm: list):
+        self.client = client
+        self.IDX_REG = IDX_REG
         self.leg1 = self.leg(leg1[0], leg1[1], [inipwm[leg1[0]], inipwm[leg1[1]]],
                              [endpwm[leg1[0]], endpwm[leg1[1]]], (0, 7))
         self.leg2 = self.leg(leg2[0], leg2[1], [inipwm[leg2[0]], inipwm[leg2[1]]],
@@ -104,8 +105,7 @@ class edog():
                                                ] = self.leg3._point2pwm(points[2])
         sval[self.leg4._get_servos()[0]], sval[self.leg4._get_servos()[1]
                                                ] = self.leg4._point2pwm(points[3])
-        msg = f'{sval[0]:.0f}:{sval[1]:.0f}:{sval[2]:.0f}:{sval[3]:.0f}:{sval[4]:.0f}:{sval[5]:.0f}:{sval[6]:.0f}:{sval[7]:.0f}:'
-        self.ser.write(msg.encode())
+        self.client.write_multiple_registers(self.IDX_REG, sval) 
         self.leg1.last_position = points[0]
         self.leg2.last_position = points[1]
         self.leg3.last_position = points[2]
