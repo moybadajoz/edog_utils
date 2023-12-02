@@ -23,9 +23,9 @@ University of Guanajuato, 2023
 //Magic initial servo values (roughly the 90 degree position for each servo)
 //You may replace them with your own empirically determined values.
 //int sval[8] = { 310, 310, 443, 458, 335, 320, 425, 390 };
-int sval[8] = { 193, 189, 581, 581, 259, 258, 476, 457 };
-const char* ssid = "ESP32"; 
-const char* password = "12345678";
+int sval[8] = {175, 188, 532, 583, 286, 281, 452, 467};
+const char* ssid = "edog"; 
+const char* password = "";
 // WiFiUDP Udp;
 IPAddress local_ip(192, 168, 4, 1);
 IPAddress gateway(192, 168, 4, 1);
@@ -41,7 +41,6 @@ uint8_t snum = 0;
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(921600);
   b1.begin();
   b1.setPWMFreq(60);
   WiFi.softAP(ssid, password);
@@ -58,12 +57,11 @@ void setup() {
 void loop() {
   // Read a string from the serial port and parse it for integers
   // representing the PWM values for each servo.
-  int ang;
-  int k;
   mb.task(); // no se que hace pero dice que es necesario
-  for(k=0; k < 8; k++)
+  for(int k=0; k < 8; k++)
   {
-    ang = mb.Hreg(IDX_REG+k)
-    b1.setPWM(snum+k, 0, ang);
+    int ang = mb.Hreg(IDX_REG+k);
+    if (ang > 0)
+      b1.setPWM(snum+k, 0, ang);
   }
 }

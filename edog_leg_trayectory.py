@@ -3,24 +3,31 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from scipy.interpolate import UnivariateSpline
-import time
-from pprint import pprint
 
 
+# Función para graficar puntos y curvas suavizadas
 def graph(x, y):
+    """
+    Grafica puntos y curvas suavizadas a partir de las coordenadas proporcionadas.
+
+    Args:
+        x (list): Lista de coordenadas x.
+        y (list): Lista de coordenadas y.
+    """
+    # Limpiar el área de la gráfica
     axes.cla()
+    # Graficar puntos
     axes.plot(x, -np.array(y), 'o')
-    colors = ['Blue', 'Orange', 'Red', 'Grey']
 
+    # Si hay más de 6 puntos, realizar suavizado y graficar curvas
     if len(x) > 6:
-
         tt = np.linspace(0, 40, len(x))
-
         xc = UnivariateSpline(tt, x)
         yc = UnivariateSpline(tt, y)
-
         xc.set_smoothing_factor(0.02)
         yc.set_smoothing_factor(0.02)
+
+        # Graficar curvas suavizadas
         for i in range(3):
             tt = np.linspace(5+(10*i), 5+(10*(i+1)), 200)
             axes.plot(xc(tt), -yc(tt))
@@ -28,13 +35,18 @@ def graph(x, y):
         axes.plot(xc(tt), -yc(tt), color='Blue')
         tt = np.linspace(0, 5, 100)
         axes.plot(xc(tt), -yc(tt), color='Blue')
+
+    # Configurar límites y cuadrícula
     axes.set_xlim(min(x)-1, max(x)+1)
     axes.set_ylim(-max(y)-1, -min(y)+1)
     axes.grid(True)
+    # Actualizar la visualización de la gráfica
     figure_canvas_agg.draw()
 
 
+# Configuración del tema de PySimpleGUI
 sg.theme('DarkAmber')
+# Diseño de la interfaz gráfica
 layout_l = [[sg.Canvas(key='canvas', size=(400, 400))]]
 layout_r = [[sg.Checkbox(text=f'P{i+1}', key=f'P{i+1}', default=True if i < 7 else False, enable_events=True),
              sg.Slider(range=(3, 10), default_value=7, resolution=0.05,
@@ -47,7 +59,7 @@ layout_r = [[sg.Checkbox(text=f'P{i+1}', key=f'P{i+1}', default=True if i < 7 el
 layout_col = [[sg.Column(layout=layout_r, p=0, scrollable=True, vertical_scroll_only=True, size=(440, 450))],
               [sg.Button('Load', pad=((10, 10), (10, 0))), sg.Input(key='In', size=(55, 20), pad=((0, 0), (10, 0)))]]
 
-
+# Creación de la ventana
 window = sg.Window(title='Frecuencia',
                    layout=[[sg.Frame(layout=layout_l, p=0, title='Graph', size=(550, 510)),
                             sg.Frame(layout=layout_col, title='Points', size=(460, 510))],
@@ -56,7 +68,7 @@ window = sg.Window(title='Frecuencia',
                            ],
                    finalize=True)
 
-# Obtención del canvas
+# Obtención del objeto de la gráfica
 canvas = window['canvas'].TKCanvas
 figure = Figure()
 axes = figure.add_subplot()
@@ -65,29 +77,34 @@ figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
 figure_canvas_agg.draw()
 figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
 
-
+# Graficar puntos iniciales
 graph([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [
       7.1, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0])
 
-
+# Bucle principal del programa
 while True:
     event, values = window.read()
-    if event == sg.WIN_CLOSED:
+
+    # Salir si se cierra la ventana
+    if event == sg.WIN_CLOSED or event == 'Cancel':
         break
-    elif event == 'Cancel':
-        break
+
+    # Imprimir las coordenadas de los puntos seleccionados
     elif event == 'Print':
         checks = [values[f'P{i+1}'] for i in range(20)]
         x = [values[f'P{i+1}X'] for i in range(20) if checks[i]]
         y = [values[f'P{i+1}Y'] for i in range(20) if checks[i]]
         print(f'x = {x}')
         print(f'y = {y}')
-        dic = {}
+
+        # imprimir en formato de diccionario para guardar el estado
         x = [values[f'P{i+1}X'] for i in range(20)]
         y = [values[f'P{i+1}Y'] for i in range(20)]
-        for i, v in enumerate(zip(checks, y, x)):
-            dic[f'P{i+1}'] = v
+
+        dic = {f'P{i+1}': v for i, v in enumerate(zip(checks, y, x))}
         print(dic, '\n')
+
+    # Cargar puntos desde la entrada de texto
     elif event == 'Load':
         try:
             dic = eval(values['In'])
@@ -101,6 +118,7 @@ while True:
             window['In'].update('')
         except:
             pass
+    # Actualizar la gráfica cuando se modifican los controles
     elif event:
         checks = [values[f'P{i+1}'] for i in range(20)]
         if checks.count(True) < 7:
@@ -110,6 +128,7 @@ while True:
         y = [values[f'P{i+1}Y'] for i in range(20) if checks[i]]
         graph(x, y)
 
+# Cerrar la ventana al finalizar
 window.close()
 
 # {'P1': (True, 6.8, 0.0), 'P2': (True, 6.9, -0.5), 'P3': (True, 7.0, -1.0), 'P4': (True, 7.1, -1.5), 'P5': (True, 7.2, -2.0), 'P6': (True, 6.2, -1.6), 'P7': (False, 7.0, 0.0), 'P8': (False, 7.0, 0.0), 'P9': (False, 7.0, 0.0), 'P10': (False, 7.0, 0.0), 'P11': (False, 7.0, 0.0), 'P12': (False, 7.0, 0.0), 'P13': (False, 7.0, 0.0), 'P14': (False, 7.0, 0.0), 'P15': (True, 5.5, 1.6), 'P16': (True, 6.4, 2.0), 'P17': (True, 6.5, 1.5), 'P18': (True, 6.6, 1.0), 'P19': (True, 6.7, 0.5), 'P20': (True, 6.8, 0.0)}

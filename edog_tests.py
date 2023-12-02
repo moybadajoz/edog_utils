@@ -2,34 +2,80 @@
 # Author: J.-P. Ramirez-Paredes <jpiramirez@gmail.com> <jpi.ramirez@ugto.mx>
 # University of Guanajuato, 2023
 
-from pickletools import long4
 import PySimpleGUI as sg
-import serial
 import numpy as np
 import time
-import math as m
-import scipy.interpolate as spi
 from scipy.interpolate import UnivariateSpline
-import matplotlib.pyplot as plt
 from edog_api import edog
+from pyModbusTCP.client import ModbusClient
 
 
+def animation(robot: edog, x: list[list, list, list, list], y: list[list, list, list, list], gap: list[float, float, float, float], t: list[float, float, float, float], reverse: list[bool, bool, bool, bool], et):
+    """
+    Anima el movimiento del robot interpolando las trayectorias de las patas.
+
+    Parámetros:
+    - robot: Objeto edog.
+    - x: Lista de listas que representan las coordenadas x de las trayectorias de las cuatro patas.
+    - y: Lista de listas que representan las coordenadas y de las trayectorias de las cuatro patas.
+    - gap: Lista de valores que representan la fase de desfase (gap) para cada pata.
+    - t: Lista de valores que representan el tiempo total de cada trayectoria para las cuatro patas.
+    - reverse: Lista de booleanos que indica si se debe invertir la trayectoria de cada pata.
+    - et: Tiempo total de ejecución de la animación.
+
+    Notas:
+    - Se utiliza interpolación univariante para suavizar las trayectorias.
+    - El desfase 'gap' determina en qué punto de la trayectoria comienza cada pata.
+    - La animación se ejecuta durante el tiempo especificado por 'et'.
+    - Se utiliza la función 'write' del objeto 'robot' para enviar las posiciones calculadas.
+    """
+    # Crear funciones de interpolación para las coordenadas x e y de cada pata
+    xf = [UnivariateSpline(np.linspace(0, t[i], len(x[i])), x[i], s=0.01)
+          for i in range(4)]
+    yf = [UnivariateSpline(np.linspace(0, t[i], len(y[i])), y[i], s=0.01)
+          for i in range(4)]
+
+    # Calcular el tiempo de desfase para cada pata
+    tgap = [tt*(g % 1) for tt, g in zip(t, gap)]
+    # Obtener el tiempo de inicio de la animación
+    tini = time.time()
+    # Bucle principal de la animación
+    while (tref := time.time() - tini) < et:
+        # Calcular los tiempos ajustados para cada pata
+        times = [(tref+g) % tt for tt, g in zip(t, tgap)]
+        # Calcular las coordenadas (x, y) para cada pata en el tiempo actual
+        points = [(f_x(ti-tt if r else tt), f_y(ti-tt if r else tt))
+                  for ti, tt, f_x, f_y, r in zip(t, times, xf, yf, reverse)]
+        # Enviar las posiciones calculadas al robot
+        robot.write(points)
+        # Esperar un breve periodo de tiempo para mantener la frecuencia de actualización
+        time.sleep(0.02)
+
+
+# Definición de coordenadas x e y para el patrón de marcha
 x = np.array([-2.0, -2.4, -2.8, -3.2, -3.6, -4.0, -
               3.2, -0.8, 0.0, -0.4, -0.8, -1.2, -1.6, -2.0])
 y = np.array([6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 5.75,
              5.7, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0])
 
-
+# Listas para almacenar coordenadas cargadas desde un archivo
 xa = []
 ya = []
 
-ser = serial.Serial()
-ser.baudrate = 921600
-ser.port = 'COM4'
-ser.open()
+# Configuración de parámetros de conexión Modbus TCP
+SERVER_HOST = "192.168.4.1"  # IP del ESP32
+SERVER_PORT = 502   # Puerto
+IDX_REG = 0  # Índice del registro
 
+# Creación del cliente Modbus
+client = ModbusClient(host=SERVER_HOST, port=SERVER_PORT,
+                      auto_open=True, debug=False)
+client.timeout = 0.1
+
+# Configuración del tema de PySimpleGUI
 sg.theme('DarkAmber')
 
+# Diseño de la interfaz gráfica
 layout_l = [[sg.Column([
     [sg.Text('Active legs')],
     [sg.Checkbox('Leg4', default=True, key='leg4', size=(8, 0), pad=((10, 10), (0, 0))), sg.Checkbox(
@@ -60,7 +106,6 @@ layout_r = [[sg.Button('Load'),  sg.Input(size=(56, 20), key='Input')],
              sg.Slider(range=(3, 0.1), default_value=0.6, resolution=0.1, key=f'speed_l1', orientation='h', size=(23, 20), disable_number_display=True, enable_events=True)],
             [sg.Checkbox(text=f'Reverse Leg 4', pad=((55, 55), (0, 0)), size=(10, 0), key='r_l4'),
              sg.Checkbox(text=f'Reverse Leg 1', pad=((55, 55), (0, 0)), size=(10, 0), key='r_l1')],
-
             [sg.Text(f'Gap Leg 3: 0%', size=(26, 0), justification='center', key=f'gl3'),
              sg.Text(f'Gap Leg 2: 0%', size=(26, 0), justification='center', key=f'gl2')],
             [sg.Slider(range=(0, 1), default_value=0, resolution=0.01, key=f'gap_l3', orientation='h', size=(23, 20), disable_number_display=True, enable_events=True),
@@ -76,77 +121,30 @@ layout_r = [[sg.Button('Load'),  sg.Input(size=(56, 20), key='Input')],
             [sg.Button('Run')]
             ]
 
-layout_lb = [[sg.Text('Speed: 2.5', key='SpeedTxt', size=(10, 0)), sg.Slider(range=(3, 0.1), default_value=0.6, resolution=0.1, key='Speed', orientation='h', size=(23, 20), disable_number_display=True, enable_events=True)],
-             [sg.Text('Iterations: 2', key='ItTxt', size=(10, 0)), sg.Slider(range=(1, 10), default_value=3, resolution=1,
-                                                                             key='n', orientation='h', size=(23, 20), disable_number_display=True, enable_events=True)],
-             [sg.Button('Forward', size=(10, 0))],
-             [sg.Button('Backward', size=(10, 0))],
-             [sg.Button('Forward Left', size=(10, 0))],
-             [sg.Button('Forward Right', size=(10, 0))],
-             #  [sg.Slider(range=(-90, 90), default_value=15.5, resolution=0.1, change_submits=True,
-             #             enable_events=True, key='osHip', orientation='h'),
-             #   sg.Slider(range=(-90, 90), default_value=65.0, resolution=0.1, change_submits=True,
-             #             enable_events=True, key='osKnee', orientation='h')]
-             ]
-
-
-layout = [[sg.Column([[sg.Frame(title='Position Test', layout=layout_l, size=(380, 215))],
-                      [sg.Frame(title='Mov Test', layout=layout_lb, size=(380, 205))]]
-                     ),
-           sg.Frame(title='Animation Test', layout=layout_r, size=(440, 425))],
+# Creación de la ventana
+layout = [[sg.Frame(title='Position Test', layout=layout_l, size=(380, 375)),
+           sg.Frame(title='Animation Test', layout=layout_r, size=(440, 375))],
           [sg.Button('Cancel')]]
 
 window = sg.Window('eDog Servo Test', layout, finalize=True)
 
-endpwm = [122, 120, 656, 655, 600, 600, 110, 111]
-inipwm = [620, 605, 141, 148, 106,  105, 642, 613]
+endpwm = [105, 120, 600, 655, 612, 600, 110, 111]
+inipwm = [606, 605, 120, 148, 106,  105, 642, 665]
 
-robot = edog(ser, leg1=(0, 4), leg2=(1, 5), leg3=(2, 6),
+robot = edog(client, IDX_REG, leg1=(0, 4), leg2=(1, 5), leg3=(2, 6),
              leg4=(3, 7), inipwm=inipwm, endpwm=endpwm)
 
-offsetHip = 15.5
-offsetKnee = 65.0
+# Bucle principal
 while True:
     event, values = window.read()
     if event == sg.WIN_CLOSED or event == 'Cancel':
         break
-    # print('You entered: ', values)
-    # print('Event: ', event)
+
     match event:
         case 'Cancel':
             break
         case sg.WIN_CLOSED:
             break
-        case 'Forward':
-            ti = [values[f'Speed'] for i in range(4)]
-            r = [values[f'r_l{i+1}'] for i in range(4)]
-            robot.animation_ind([x, x, x, x], [y, y, y, y], [0.5, 0.75, 0.25, 0.0],
-                                ti, (False, False, False, False), values['n'])
-            time.sleep(0.1)
-            robot.set_position((-2, 6.0), (1, 1, 1, 1))
-        case 'Backward':
-            ti = [values[f'Speed'] for i in range(4)]
-            r = [values[f'r_l{i+1}'] for i in range(4)]
-            robot.animation_ind([x, x, x, x],
-                                [y, y, y, y],
-                                [0.5, 0.25, 0.75, 0.0],
-                                ti, (True, True, True, True), values['n'])
-            time.sleep(0.1)
-            robot.set_position((-2, 6.0), (1, 1, 1, 1))
-        case 'Forward Left':
-            ti = [values[f'Speed'] for i in range(4)]
-            r = [values[f'r_l{i+1}'] for i in range(4)]
-            robot.animation_ind([x, x, x*0.5, x*0.5], [y, y, y, y], [0.5, 0.75, 0.25, 0.0],
-                                ti, (False, False, False, False), values['n'])
-            time.sleep(0.1)
-            robot.set_position((-2, 6.0), (1, 1, 1, 1))
-        case 'Forward Right':
-            ti = [values[f'Speed'] for i in range(4)]
-            r = [values[f'r_l{i+1}'] for i in range(4)]
-            robot.animation_ind([x, x, x, x], [y, y, y, y], [0.75, 0.5, 0.25, 0.0],
-                                ti, (True, True, False, False), values['n'])
-            time.sleep(0.1)
-            robot.set_position((-2, 6.0), (1, 1, 1, 1))
         case 'Load':
             try:
                 dic = eval(values['Input'])
@@ -166,40 +164,11 @@ while True:
                 gap = [values[f'gap_l{i+1}'] for i in range(4)]
                 ti = [values[f'speed_l{i+1}'] for i in range(4)]
                 r = [values[f'r_l{i+1}'] for i in range(4)]
-                robot.animation_ind([xa, xa, xa, xa], [
-                                    ya, ya, ya, ya], gap, ti, r, values['et'])
+                animation(robot, [xa, xa, xa, xa], [
+                    ya, ya, ya, ya], gap, ti, r, values['et'])
                 time.sleep(0.1)
                 robot.set_position((0, 6.5), (1, 1, 1, 1))
 
-        case 'Speed':
-            window['SpeedTxt'].update(
-                value=f'Speed: {3.1-values["Speed"]:.1f}')
-        case 'n':
-            window['ItTxt'].update(value=f'Iterations: {values["n"]:.0f}')
-        case 'gap_l1':
-            window['gl1'].update(
-                value=f'Gap Leg 1: {values["gap_l1"]*100:.0f}%')
-        case 'gap_l2':
-            window['gl2'].update(
-                value=f'Gap Leg 2: {values["gap_l2"]*100:.0f}%')
-        case 'gap_l3':
-            window['gl3'].update(
-                value=f'Gap Leg 3: {values["gap_l3"]*100:.0f}%')
-        case 'gap_l4':
-            window['gl4'].update(
-                value=f'Gap Leg 4: {values["gap_l4"]*100:.0f}%')
-        case 'speed_l1':
-            window['sl1'].update(
-                value=f'Speed Leg 1: {3.1-values["speed_l1"]:.1f}')
-        case 'speed_l2':
-            window['sl2'].update(
-                value=f'Speed Leg 2: {3.1-values["speed_l2"]:.1f}')
-        case 'speed_l3':
-            window['sl3'].update(
-                value=f'Speed Leg 3: {3.1-values["speed_l3"]:.1f}')
-        case 'speed_l4':
-            window['sl4'].update(
-                value=f'Speed Leg 4: {3.1-values["speed_l4"]:.1f}')
         case 'et':
             window['ettxt'].update(
                 value=f'Ejecution Time: {values["et"]}s')
@@ -210,9 +179,14 @@ while True:
                 point = (values['SliderX'], values['SliderY'])
                 robot.set_position(
                     point, legs=(values['leg1'], values['leg2'], values['leg3'], values['leg4']))
-            if event == 'osHip' or event == 'osKnee':
-                offsetHip = values['osHip']
-                offsetKnee = values['osKnee']
+            for i in range(1, 5):
+                if event == f'gap_l{i}':
+                    window[f'gl{i}'].update(
+                        value=f'Gap Leg {i}: {values[f"gap_l{i}"]*100:.0f}%')
+                if event == f'speed_l{i}':
+                    window[f'sl{i}'].update(
+                        value=f'Speed Leg {i}: {3.1-values[f"speed_l{i}"]:.1f}')
 
+# Cierre de la ventana y del cliente Modbus
 window.close()
-ser.close()
+client.close()
