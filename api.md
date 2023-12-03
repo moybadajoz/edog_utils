@@ -1,7 +1,5 @@
 # Documentacion edog api
 
----
-
 ## Requerimientos
 
 - numpy
