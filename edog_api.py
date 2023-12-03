@@ -1,5 +1,6 @@
 import numpy as np
 import math as m
+from pyModbusTCP.client import ModbusClient
 
 
 class edog():
@@ -14,7 +15,7 @@ class edog():
     - endpwm: Lista de valores PWM finales para cada servo.
     """
 
-    def __init__(self, client, IDX_REG, leg1: tuple[int, int], leg2: tuple[int, int], leg3: tuple[int, int], leg4: tuple[int, int], inipwm: list, endpwm: list):
+    def __init__(self, client: ModbusClient, IDX_REG: int, leg1: tuple[int, int], leg2: tuple[int, int], leg3: tuple[int, int], leg4: tuple[int, int], inipwm: list, endpwm: list):
         self.client = client
         self.IDX_REG = IDX_REG
         self.leg1 = self.leg(leg1[0], leg1[1], [inipwm[leg1[0]], inipwm[leg1[1]]],
@@ -84,6 +85,28 @@ class edog():
                 angHip: El valor del angulo de la cadera.
                 angKnee: El valor del angulo de la rodilla.
             """
+            """
+            Notas:
+                - Para calcular los angulos utiliza imaginando un un triangulo rectangulo
+                  para calcular el angulo de desface, el cual aparece cuando x != 0
+                - Tambien se imagina un triangulo escaleno (para este caso), de lados de 5cm y 3.6cm
+                    y la hipotenusa del triangulo rectangulo anterior.
+                - Se limita el tamaño maximo y minimo de la hipotenusa ya que pueden colapsar
+                    las ecuaciones trigonometricas siguientes.
+                    Las limitaciones corresponden a la suma de los lados conocidos (la longitud de la
+                    tibia y el femur) para el maximo, y la resta de estos para el minimo.
+                - Tambien se limita la relacion entre x/h, ya que arcsin() solo trabaja (para este caso)
+                    entre -1.0 < x < 1.0
+                - Para el calculo de los angulos se utiliza la formula:
+                    arccos((a^2+b^2-b^2)/(2*a*b))
+                    siendo a y b los lados adyacentes al angulo
+                    y c el lado opuesto
+                - Al angulo de la cadera se le agrega el angulo de desface mientras que al angulo
+                    de la rodilla se le resta pi, ya que, mientras que en triangulo un angulo de 0 gradros
+                    se formaria cuando el femur y la tibia estan superpuestos, en el robot este se logra
+                    al estirar completamente la pierna.
+                - Al final se agregan un pequeño offset a los agulos para alinearlos correctamente.
+            """
             y = point[1]
             x = -point[0]
             h = (x**2+y**2)**0.5
@@ -95,9 +118,6 @@ class edog():
             a_b = np.arccos((25+12.96-(h**2))/(2*5*3.6))
             angHip = (a_p+a_a)*(180/np.pi)
             angKnee = (-np.pi+a_b)*(180/np.pi)
-            # angHip = angHip if abs(angHip) <= 90 else m.copysign(90, angHip)
-            # angKnee = angKnee if abs(
-            #     angKnee) <= 100 else m.copysign(100, angKnee)
             return angHip+11.5, angKnee+61.0
 
         def _point2pwm(self, point: tuple[float, float]) -> tuple[int, int]:
@@ -147,17 +167,17 @@ class edog():
         self.leg3.last_position = points[2]
         self.leg4.last_position = points[3]
 
-    def get_last_positions(self) -> tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]:
+    def get_positions(self) -> tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]:
         '''
-        Retorna las últimas posiciones de las cuatro piernas del robot.
+        Retorna la posicion actual de las cuatro piernas del robot.
 
-        Devuelve una tupla de cuatro elementos, donde cada elemento representa la última posición (punto) de una pierna específica.
+        Devuelve una tupla de cuatro elementos, donde cada elemento representa la posición (punto) de una pierna específica.
 
         Estructura de la tupla devuelta:
-        - Primer elemento: Coordenadas (x, y) de la última posición de la pierna 1.
-        - Segundo elemento: Coordenadas (x, y) de la última posición de la pierna 2.
-        - Tercer elemento: Coordenadas (x, y) de la última posición de la pierna 3.
-        - Cuarto elemento: Coordenadas (x, y) de la última posición de la pierna 4.
+        - Primer elemento: Coordenadas (x, y) de la posición de la pierna 1.
+        - Segundo elemento: Coordenadas (x, y) de la posición de la pierna 2.
+        - Tercer elemento: Coordenadas (x, y) de la posición de la pierna 3.
+        - Cuarto elemento: Coordenadas (x, y) de la posición de la pierna 4.
         '''
         return self.leg1.last_position, self.leg2.last_position, self.leg3.last_position, self.leg4.last_position
 
