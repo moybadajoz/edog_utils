@@ -160,7 +160,6 @@ class edog():
         sval[self.leg4._get_servos()[0]], sval[self.leg4._get_servos()[1]
                                                ] = self.leg4._point2pwm(points[3])
         sval = [int(n) for n in sval]
-        print(sval)
         self.client.write_multiple_registers(self.IDX_REG, sval)
         self.leg1.last_position = points[0]
         self.leg2.last_position = points[1]
@@ -192,4 +191,3 @@ class edog():
         points = [(point) if legs[i] else self.get_last_positions()[i]
                   for i in range(4)]
         self.write(points)
-        self.get_last_positions()
