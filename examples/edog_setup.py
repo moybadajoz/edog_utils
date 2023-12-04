@@ -13,8 +13,6 @@
 
 from pyModbusTCP.client import ModbusClient
 import PySimpleGUI as sg
-import serial
-from pprint import pprint
 
 
 # Convierte ángulos en valores PWM
