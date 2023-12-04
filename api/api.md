@@ -71,3 +71,28 @@ Establece una posición para las piernas indicadas basándose en un punto dado.
 
 - `point`: Tupla que representa las coordenadas (x, y).
 - `legs`: Tupla que permite mover o restringir ciertas piernas (por defecto es True para todas las piernas).
+
+## Ejemplo
+
+```
+from api.edog_api import edog
+from pyModbusTCP.client import ModbusClient
+
+
+SERVER_HOST = "192.168.4.1"  # IP del ESP32
+SERVER_PORT = 502   # Puerto
+IDX_REG = 0  # Índice del registro
+
+client = ModbusClient(host=SERVER_HOST, port=SERVER_PORT,
+                      auto_open=True, debug=False)
+
+endpwm = [105, 120, 600, 655, 612, 600, 110, 111]
+inipwm = [606, 605, 120, 148, 106,  105, 642, 665]
+
+robot = edog(client=client, IDX_REG=IDX_REG, leg1=(0, 4), leg2=(1, 5), leg3=(2, 6),
+             leg4=(3, 7), inipwm=inipwm, endpwm=endpwm)
+
+robot.set_position((-2, 6), (1, 1, 1, 1))
+
+client.close()
+```
