@@ -151,7 +151,6 @@ while True:
                 speed_in.put(values['speed'])
                 steer_in.put(values['steer'])
                 new.set()
-                print('dasda')
                 update = False
 
         case 'backward':
