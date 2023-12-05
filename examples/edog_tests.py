@@ -1,5 +1,7 @@
 # This script implements a simple gait pattern that was derived from IK
-# Author: J.-P. Ramirez-Paredes <jpiramirez@gmail.com> <jpi.ramirez@ugto.mx>
+# Authors: J.-P. Ramirez-Paredes <jpiramirez@gmail.com> <jpi.ramirez@ugto.mx>
+#          Moises Badajoz Martinez <moisesbadajoz36@gmail.com>
+#          Paola Lizbet Cabrera Oros <pl.cabreraoros@ugto.mx>
 # University of Guanajuato, 2023
 
 import PySimpleGUI as sg

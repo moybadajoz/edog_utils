@@ -96,3 +96,11 @@ robot.set_position((-2, 6), (1, 1, 1, 1))
 
 client.close()
 ```
+
+---
+
+Authors: <br>
+Moises Badajoz Martinez <moisesbadajoz36@gmail.com><br>
+Paola Lizbet Cabrera Oros <pl.cabreraoros@ugto.mx><br>
+
+University of Guanajuato, 2023

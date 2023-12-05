@@ -8,7 +8,9 @@
 #      5          Rear right knee
 #      6          Rear left knee
 #      7          Front left knee
-# Author: J.-P. Ramirez-Paredes <jpiramirez@gmail.com> <jpi.ramirez@ugto.mx>
+# Authors: J.-P. Ramirez-Paredes <jpiramirez@gmail.com> <jpi.ramirez@ugto.mx>
+#          Moises Badajoz Martinez <moisesbadajoz36@gmail.com>
+#          Paola Lizbet Cabrera Oros <pl.cabreraoros@ugto.mx>
 # University of Guanajuato, 2023
 
 from pyModbusTCP.client import ModbusClient

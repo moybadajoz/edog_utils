@@ -1,3 +1,9 @@
+# Authors: Moises Badajoz Martinez <moisesbadajoz36@gmail.com>
+#          Paola Lizbet Cabrera Oros <pl.cabreraoros@ugto.mx>
+
+# University of Guanajuato, 2023
+
+
 import PySimpleGUI as sg
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg

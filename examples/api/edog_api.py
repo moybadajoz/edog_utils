@@ -1,3 +1,9 @@
+'''
+authors:    Moises Badajoz Martinez <moisesbadajoz36@gmail.com>
+            Paola Lizbet Cabrera Oros <pl.cabreraoros@ugto.mx>
+            
+University of Guanajuato, 2023
+'''
 import numpy as np
 import math as m
 from pyModbusTCP.client import ModbusClient

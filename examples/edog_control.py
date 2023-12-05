@@ -1,3 +1,9 @@
+'''
+authors:    Moises Badajoz Martinez <moisesbadajoz36@gmail.com>
+            Paola Lizbet Cabrera Oros <pl.cabreraoros@ugto.mx>
+
+University of Guanajuato, 2023
+'''
 from api.edog_api import edog
 import time
 import numpy as np

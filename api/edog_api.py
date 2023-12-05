@@ -1,3 +1,10 @@
+'''
+authors:    Moises Badajoz Martinez <moisesbadajoz36@gmail.com>
+            Paola Lizbet Cabrera Oros <pl.cabreraoros@ugto.mx>
+
+University of Guanajuato, 2023
+'''
+
 import numpy as np
 import math as m
 from pyModbusTCP.client import ModbusClient
@@ -101,7 +108,7 @@ class edog():
                 - Tambien se limita la relacion entre x/h, ya que arcsin() solo trabaja (para este caso)
                     entre -1.0 < x < 1.0
                 - Para el calculo de los angulos se utiliza la formula:
-                    arccos((a^2+b^2-b^2)/(2*a*b))
+                    arccos((a^2+b^2-c^2)/(2*a*b))
                     siendo a y b los lados adyacentes al angulo
                     y c el lado opuesto
                 - Al angulo de la cadera se le agrega el angulo de desface mientras que al angulo

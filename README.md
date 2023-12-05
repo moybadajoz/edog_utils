@@ -73,3 +73,10 @@ y en formato de diccionario:<br>
 
 Este último permite volver a cargarlo posteriormente en el programa para continuar en otro momento con la realización
 de la animación, además de poder cargarlo en [edog_test.py](examples/edog_tests.py).
+
+Authors:<br>
+J.-P. Ramirez-Paredes <jpiramirez@gmail.com> <jpi.ramirez@ugto.mx><br>
+Moises Badajoz Martinez <moisesbadajoz36@gmail.com><br>
+Paola Lizbet Cabrera Oros <pl.cabreraoros@ugto.mx><br>
+
+University of Guanajuato, 2023
